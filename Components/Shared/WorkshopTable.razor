@@ -1,0 +1,118 @@
+﻿@using Microsoft.EntityFrameworkCore
+@using MudBlazor6.Models
+@inject ISnackbar Snackbar
+@inject IDbContextFactory<CJDataContext> DBFactory
+<MudPaper Elevation="2" Class="pa-4 ma-4">
+    <MudTextField @bind-Value="workshop.WorkshopName" Label="Участок" Variant="Variant.Outlined" Immediate="true" TextChanged="WorkshopFieldChange" />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddWorkshopSection" Disabled=@disabledSaveButton>Сохранить</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="DeleteWorkshop" Disabled=@disabledDeleteButton>Удалить</MudButton>
+</MudPaper>
+<MudTable Elevation="2" RowClass="cursor-pointer" Items="GetAll()" Class="pa-4 ma-4" Hover="true"
+          T="Workshop" RowClassFunc="WorkshopTableRowClass" SelectedItemChanged="WorkshopSelectedChange" MultiSelection="false">
+    <HeaderContent>
+        <MudTh>Название участка</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="WorkshopName">@context.WorkshopName</MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private Workshop workshop = new();
+    private bool disabledDeleteButton = true;
+    private bool disabledSaveButton = true;
+
+    protected override void OnInitialized()
+    {
+        Snackbar.Clear();
+        Snackbar.Configuration.PositionClass = MudBlazor.Defaults.Classes.Position.BottomLeft;
+    }
+
+    // ---- Получение всех данных из таблицы -----
+    private List<Workshop> GetAll()
+    {
+        using CJDataContext context = DBFactory.CreateDbContext();
+        return context.Workshops.ToList();
+    }
+    //  ------------------------------------------
+
+
+    // ----- операции CRUD ------
+    private async Task AddWorkshopSection()
+    {
+        using CJDataContext context = DBFactory.CreateDbContext();
+        if (workshop != null)
+        {
+            if (workshop.WorkshopId == 0)
+            {
+                //новая запись
+                context.Add(workshop);
+                await context.SaveChangesAsync();
+                Snackbar.Add("Участок записан.", Severity.Info);
+            }
+            else
+            {
+                //обновление
+                context.Update(workshop);
+                await context.SaveChangesAsync();
+                Snackbar.Add("Участок перезаписан.", Severity.Info);
+            }
+        }
+        else
+        {
+            Snackbar.Add("Ошибка сохранения.", Severity.Warning);
+        }
+        workshop = new();
+    }
+
+    private async Task DeleteWorkshop()
+    {
+        using CJDataContext context = DBFactory.CreateDbContext();
+        var workshopSearch = await context.Workshops.FirstOrDefaultAsync(m => m.WorkshopId == workshop.WorkshopId);
+        if (workshopSearch != null)
+        {
+            context.Workshops.Remove(workshopSearch);
+            await context.SaveChangesAsync();
+            Snackbar.Add("Участок удален.", Severity.Info);
+            workshop = new();
+        }
+        else
+        {
+            Snackbar.Add("Ошибка удаления.", Severity.Warning);
+        }
+    }
+    // --------------------------
+
+    // ----- управление внешним видом таблицы --------
+    private void WorkshopSelectedChange(Workshop selectedItem)
+    {
+        if (selectedItem != null)
+            if (selectedItem.WorkshopId == workshop.WorkshopId)
+                workshop = new(); // добавивть сброс выделения, чтобы selectedItem=null
+            else workshop = selectedItem;
+        else workshop = new();
+    }
+
+    private string WorkshopTableRowClass(Workshop item, int rownum)
+    {
+        if (workshop.WorkshopId == item.WorkshopId) return "mud-info"; else return string.Empty;
+    }
+
+    private void WorkshopFieldChange(string input)
+    {
+        if (workshop.WorkshopName != "" || workshop.WorkshopName != string.Empty)
+        {
+            if (workshop.WorkshopId == 0)
+            {
+                disabledDeleteButton = true; disabledSaveButton = false;
+            }
+            else
+            { disabledDeleteButton = false; disabledSaveButton = false; }
+        }
+        else
+        {
+            disabledDeleteButton = true; disabledSaveButton = true;
+        }
+    }
+    // ------------------------------------------------
+}

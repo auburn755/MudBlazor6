@@ -1,0 +1,17 @@
+﻿@page "/Dashboard"
+
+<h3>Dashboard</h3>
+
+<AuthorizeView Roles="Сотрудник цеха">
+    <Authorized>
+        <MudText>Данная страница доступна</MudText>
+    </Authorized>
+    <Authorizing>Подождите...</Authorizing>
+    <NotAuthorized>
+        <MudText>Не авторизован</MudText>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+
+}

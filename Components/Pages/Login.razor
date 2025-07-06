@@ -1,0 +1,56 @@
+﻿@page "/Login"
+
+@using MudBlazor6.Services
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@inject ControlJobAuthenticationStateProvider controlJobAuthenticationStateProvider // сервис для аутентификации пользователя
+@inject ISnackbar Snackbar
+
+<h3>Login</h3>
+
+<MudPaper Elevation="2" Class="pa-4 ma-4">
+    <MudForm>
+        <MudTextField T="string" Label="Сотрудник" @bind-Value="username" Required="true" RequiredError="Имя обязательно"/>
+        <MudTextField T="string" Label="Пароль" @bind-Value="password" Required="true" RequiredError="Пароль обязателен" InputType="InputType.Password"/>
+
+    </MudForm>
+    <MudButton OnClick="OnOkButton" Variant="Variant.Filled" Color="Color.Primary">Ok</MudButton>
+    <MudButton OnClick="OnExitButton" Variant="Variant.Filled" Color="Color.Secondary">Exit</MudButton>
+</MudPaper>
+<AuthorizeView>
+    <Authorized>
+        @if (controlJobAuthenticationStateProvider.CurrentUser !=null)
+        {
+            <MudText>@controlJobAuthenticationStateProvider.CurrentUser.UserName</MudText>
+            <MudText>@controlJobAuthenticationStateProvider.CurrentUser.Password</MudText>
+            <MudText>@controlJobAuthenticationStateProvider.CurrentUser.Role</MudText>
+        }
+    </Authorized>
+    <Authorizing>Подождите...</Authorizing>
+    <NotAuthorized>
+        <MudText>Не авторизован</MudText>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private string? username;
+    private string? password;
+
+    /*protected override void OnInitialized()
+    {
+        Snackbar.Clear();
+        Snackbar.Configuration.PositionClass = MudBlazor.Defaults.Classes.Position.BottomLeft;
+    }*/
+
+    private async Task OnOkButton()
+    {
+    if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
+    {
+        await controlJobAuthenticationStateProvider.LoginAsync(username, password);
+    }
+    }
+    private async Task OnExitButton()
+    {
+        await controlJobAuthenticationStateProvider.LogoutAsync();
+    }
+}

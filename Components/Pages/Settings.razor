@@ -1,0 +1,11 @@
+﻿@page "/Settings"
+
+<AuthorizeView Roles="Администратор, Менеджер">
+    <Authorized>
+        <MudText>Данная страница доступна</MudText>
+    </Authorized>
+    <Authorizing>Подождите...</Authorizing>
+    <NotAuthorized>
+        <MudText>Страница доступна только администратору и менеджеру</MudText>
+    </NotAuthorized>
+</AuthorizeView>

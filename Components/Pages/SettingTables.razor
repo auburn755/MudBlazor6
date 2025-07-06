@@ -1,0 +1,26 @@
+﻿@page "/SettingTables"
+@using MudBlazor6.Components.Shared
+
+<AuthorizeView Roles="Администратор">
+    <Authorized>
+<MudExpansionPanels>
+    <MudExpansionPanel Text="Участки производства" Expanded="true">
+        <WorkshopTable />
+    </MudExpansionPanel>
+    <MudExpansionPanel Text="Единицы измерения">
+        <UnitsTable/>
+    </MudExpansionPanel>
+    <MudExpansionPanel Text="Операции">
+        <JobsTable/>
+    </MudExpansionPanel>
+</MudExpansionPanels>
+    </Authorized>
+    <Authorizing>Подождите...</Authorizing>
+    <NotAuthorized>
+        <MudText>Страница доступна только администратору</MudText>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+
+}

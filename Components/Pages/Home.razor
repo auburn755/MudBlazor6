@@ -1,0 +1,11 @@
+﻿@page "/"
+
+<AuthorizeView>
+    <Authorized>
+        <MudText>Данная страница доступна всем</MudText>
+    </Authorized>
+    <Authorizing>Подождите...</Authorizing>
+    <NotAuthorized>
+        <MudText>Не авторизован</MudText>
+    </NotAuthorized>
+</AuthorizeView>

@@ -1,0 +1,172 @@
+﻿@using Microsoft.EntityFrameworkCore
+@using MudBlazor6.Models
+@inject ISnackbar Snackbar
+@inject IDbContextFactory<CJDataContext> DBFactory
+
+<MudPaper Elevation="2" Class="pa-4 ma-4">
+    <MudSelect T="Workshop" @bind-Value="workshop" Label="<Все участки.>" Variant="Variant.Outlined" Clearable OnOpen="SelectWorkshopSectionOnOpen">
+        @foreach (var workshop in workshops!)
+        {
+            <MudSelectItem Value="@workshop">@workshop.WorkshopName</MudSelectItem>
+        }
+    </MudSelect>
+    <!--<MudText>@(workshopSection?.WorkshopSectionName ?? "ничего")</MudText>-->
+</MudPaper>
+<MudPaper Elevation="2" Class="pa-4 ma-4">
+    <MudStack Row StretchItems="StretchItems.Start">
+        <MudTextField @bind-Value="job.JobName" Label="Определение операции" Variant="Variant.Outlined" Immediate="true" TextChanged="JobFieldChange" />
+        <MudSelect T="Unit" @bind-Value="unit" Label="ед. изм." Variant="Variant.Outlined" OnOpen="SelectUnitOnOpen" @ref="MudSelectUnit">
+            @foreach (var un in units!)
+            {
+                <MudSelectItem Value="@un">@un.UnitName</MudSelectItem>
+            }
+        </MudSelect>
+    </MudStack>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddJob" Disabled=@disabledSaveButton>Сохранить</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="DeleteJob" Disabled=@disabledDeleteButton>Удалить</MudButton>
+</MudPaper>
+<MudTable Elevation="2" RowClass="cursor-pointer" Items="GetAllJob()" Class="pa-4 ma-4" Hover="true"
+          T="Job" RowClassFunc="JobTableRowClass" SelectedItemChanged="JobTableSelectedChange" MultiSelection="false">
+    <HeaderContent>
+        <MudTh>JobId</MudTh>
+        <MudTh>JobName</MudTh>
+        <MudTh>UnitId</MudTh>
+        <MudTh>WorkshopId</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="JobId">@context.JobId</MudTd>
+        <MudTd DataLabel="JobName">@context.JobName</MudTd>
+        <MudTd DataLabel="UnitId">@GetUnitNameById(context.UnitId)</MudTd>
+        <MudTd DataLabel="WorkshopSectionId">@GetWorkshopNameById(context.WorkshopId)</MudTd>
+    </RowTemplate>
+</MudTable>
+
+
+@code {
+    private Workshop? workshop;
+    private List<Workshop>? workshops;
+    private Unit? unit;
+    private List<Unit>? units;
+
+    private Job job = new();
+
+    private bool disabledSaveButton = true;
+    private bool disabledDeleteButton = true;
+
+    private MudSelect<Unit> MudSelectUnit;
+
+    protected override void OnInitialized()
+    {
+        workshops = GetAllWorkshop();
+        units = GetAllUnit();
+        Snackbar.Clear();
+        Snackbar.Configuration.PositionClass = MudBlazor.Defaults.Classes.Position.BottomLeft;
+    }
+
+    private List<Job> GetAllJob()
+    {
+        using CJDataContext context = DBFactory.CreateDbContext();
+        if (workshop != null)
+        {
+            return context.Jobs.Where(x => x.WorkshopId == workshop.WorkshopId).ToList();
+        }
+        else return context.Jobs.ToList();
+    }
+    private List<Workshop> GetAllWorkshop()
+    {
+        using CJDataContext context = DBFactory.CreateDbContext();
+        return context.Workshops.ToList();
+    }
+
+    private List<Unit> GetAllUnit()
+    {
+        using CJDataContext context = DBFactory.CreateDbContext();
+
+        return context.Units.ToList();
+    }
+
+    private string GetWorkshopNameById(int id)
+    {
+        Workshop? _workshop;
+        if (workshops != null)
+        {
+            _workshop = workshops.Find(x => x.WorkshopId == id);
+            if (_workshop != null) return _workshop.WorkshopName; else return "не определено";
+        }
+        return "не определено";
+    }
+    private string GetUnitNameById(int id)
+    {
+        Unit? un;
+        if (units != null)
+        {
+            un = units.Find(x => x.UnitId == id);
+            if (un != null) return un.UnitName; else return "не определено";
+        }
+        return "не определено";
+    }
+
+    // ----- CRUD ------
+
+    private async Task AddJob()
+    {
+
+    }
+
+    private async Task DeleteJob()
+    {
+
+    }
+    // -----------------
+
+
+    private void SelectWorkshopSectionOnOpen()
+    {
+        workshops = GetAllWorkshop();
+    }
+    private void SelectUnitOnOpen()
+    {
+        units = GetAllUnit();
+    }
+    private string JobTableRowClass(Job item, int rownum)
+    {
+        return string.Empty;
+    }
+    private void JobTableSelectedChange(Job selectedItem)
+    {
+        /* нажатие на строку в таблице
+        * если Участок не выбран (в таблице отображены операции всех участков и workshopSection=null)
+        * тогда выделение не должно происходить
+             * если Участок выбран (в таблице отображены операции только выбранного участка и workshopSection - это выбраный участок)
+             * тогда в поле ввода работы переносим данные из выбраной строки и ищем в поле MudSelect для единиц измерения
+             * нужную единицу измерения из выбраной строки Job
+             * проблема в отображении единиц измерения в поле MudSelect. теоретически возможен вариант, что в таблице в выбраной
+             * строке единица измерения будет отсутствовать в списке MudSelect
+             */
+        if (selectedItem != null)
+        {
+            if (workshop != null)
+            {
+                if (selectedItem.JobId == job.JobId) { job = new(); unit = null; } else { job = selectedItem; unit = units!.Find(x => x.UnitId == job.UnitId); }
+            }
+            else
+            {
+                if (selectedItem.JobId == job.JobId) { job = new(); unit = null; }
+                else
+                {
+                    job = selectedItem; unit = units!.Find(x => x.UnitId == job.UnitId);
+                    workshop = workshops!.Find(m => m.WorkshopId == job.WorkshopId);
+                }
+            }
+        }
+        else
+        {
+            job = new();
+            unit = null;
+        }
+    }
+    private void JobFieldChange(string input)
+    {
+        //throw new NotImplementedException();
+    }
+}

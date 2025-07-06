@@ -1,0 +1,118 @@
+﻿@using Microsoft.EntityFrameworkCore
+@using MudBlazor6.Models
+@inject ISnackbar Snackbar
+@inject IDbContextFactory<CJDataContext> DBFactory
+
+<MudPaper Elevation="2" Class="pa-4 ma-4">
+    <MudTextField @bind-Value="unit.UnitName" Label="Единица измерения" Variant="Variant.Outlined" Immediate="true" TextChanged="UnitFieldChange" />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddUnit" Disabled=@disabledSaveButton>Сохранить</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="DeleteUnit" Disabled=@disabledDeleteButton>Удалить</MudButton>
+</MudPaper>
+<MudTable Elevation="2" RowClass="cursor-pointer" Items="GetAll()" Class="pa-4 ma-4" Hover="true"
+          T="Unit" RowClassFunc="UnitTableRowClass" SelectedItemChanged="UnitTableSelectedChange" MultiSelection="false">
+    <HeaderContent>
+        <MudTh>Единица измерения</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="UnitName">@context.UnitName</MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+
+    private Unit unit = new();
+    private bool disabledDeleteButton = true;
+    private bool disabledSaveButton = true;
+
+    protected override void OnInitialized()
+    {
+        Snackbar.Clear();
+        Snackbar.Configuration.PositionClass = MudBlazor.Defaults.Classes.Position.BottomLeft;
+    }
+
+    private List<Unit> GetAll()
+    {
+        using CJDataContext context = DBFactory.CreateDbContext();
+        return context.Units.ToList();
+    }
+
+    // ----- операции CRUD --------
+    private async Task AddUnit()
+    {
+        using CJDataContext context = DBFactory.CreateDbContext();
+        if (unit != null)
+        {
+            if (unit.UnitId == 0)
+            {
+                //новая запись
+                context.Add(unit);
+                await context.SaveChangesAsync();
+                Snackbar.Add("Единица измерения добавлена.", Severity.Info);
+            }
+            else
+            {
+                //обновление
+                context.Update(unit);
+                await context.SaveChangesAsync();
+                Snackbar.Add("Единица измерения перезаписана", Severity.Info);
+            }
+        }
+        else
+        {
+            Snackbar.Add("Ошибка сохранения.", Severity.Warning);
+        }
+
+        unit = new();
+    }
+
+    private async Task DeleteUnit()
+    {
+        using CJDataContext context = DBFactory.CreateDbContext();
+        var unitSearch = await context.Units.FirstOrDefaultAsync(m => m.UnitId == unit.UnitId);
+        {
+            if (unitSearch != null)
+            {
+                context.Units.Remove(unitSearch);
+                await context.SaveChangesAsync();
+                Snackbar.Add("Единица измерения удалена.", Severity.Info);
+                unit = new();
+            }
+            else
+            {
+                Snackbar.Add("Ошибка удаления.", Severity.Warning);
+            }
+        }
+    }
+    // --------------------
+
+    // ------ Управление внешним видом и поведением таблицы --------------
+    private void UnitTableSelectedChange(Unit selectedItem)
+    {
+        if (selectedItem != null)
+            if (selectedItem.UnitId == unit.UnitId) unit = new(); else unit = selectedItem;
+        else unit = new();
+    }
+
+    private string UnitTableRowClass(Unit item, int rownum)
+    {
+        if (unit.UnitId == item.UnitId) return "mud-info"; else return string.Empty;
+    }
+
+    private void UnitFieldChange(string input)
+    {
+        if (unit.UnitName != "" || unit.UnitName != string.Empty)
+        {
+            if (unit.UnitId == 0)
+            {
+                disabledDeleteButton = true; disabledSaveButton = false;
+            }
+            else
+            { disabledDeleteButton = false; disabledSaveButton = false; }
+        }
+        else
+        {
+            disabledDeleteButton = true; disabledSaveButton = true;
+        }
+    }
+    // ----------------------------------
+}
